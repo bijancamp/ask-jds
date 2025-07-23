@@ -9,6 +9,6 @@ workflows:
 services:
   web:
     project: ./src/web
-    dist: dist
+    dist: dist/web/browser
     language: js
     host: staticwebapp

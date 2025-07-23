@@ -10,6 +10,7 @@ using Azure.Search.Documents.Indexes.Models;
 using Azure;
 using Api.Models;
 using System.Linq;
+using Azure.AI.OpenAI;
 
 class Program
 {
@@ -81,6 +82,19 @@ class Program
                     var appSettings = provider.GetRequiredService<AppSettings>();
                     return indexClient.GetSearchClient(appSettings.SearchIndexName);
                 });
+
+                // Configure Azure OpenAI client
+                services.AddSingleton<OpenAIClient>(provider =>
+                {
+                    var openAIEndpoint = Environment.GetEnvironmentVariable("OpenAIServiceEndpoint");
+                    if (string.IsNullOrEmpty(openAIEndpoint))
+                    {
+                        throw new InvalidOperationException("OpenAIServiceEndpoint environment variable must be set");
+                    }
+                    
+                    // Use managed identity for authentication
+                    return new OpenAIClient(new Uri(openAIEndpoint), credential);
+                });
                 
                 // Add configuration values as singleton services for easy access
                 services.AddSingleton(provider => 
@@ -88,7 +102,8 @@ class Program
                     return new AppSettings
                     {
                         ServiceBusQueueName = Environment.GetEnvironmentVariable("ServiceBusQueueName") ?? "job-descriptions",
-                        SearchIndexName = Environment.GetEnvironmentVariable("SearchIndexName") ?? "job-descriptions"
+                        SearchIndexName = Environment.GetEnvironmentVariable("SearchIndexName") ?? "job-descriptions",
+                        OpenAIDeploymentName = Environment.GetEnvironmentVariable("OpenAIDeploymentName") ?? "gpt-4o"
                     };
                 });
             })

@@ -26,6 +26,7 @@ param serviceBusConnectionString string = ''
 param serviceBusNamespaceName string = ''
 param searchServiceName string = ''
 param searchServiceApiKey string = ''
+param openAIServiceName string = ''
 
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
@@ -101,6 +102,9 @@ module api './app/api.bicep' = {
       SearchServiceName: search.outputs.searchServiceName
       SearchServiceApiKey: searchServiceApiKey
       SearchIndexName: 'job-descriptions'
+      OpenAIServiceEndpoint: openAI.outputs.openAIServiceEndpoint
+      OpenAIServiceName: openAI.outputs.openAIServiceName
+      OpenAIDeploymentName: 'gpt-4o'
       APPLICATIONINSIGHTS_CONNECTION_STRING: monitoring.outputs.connectionString
     }
     virtualNetworkSubnetId: ''
@@ -160,6 +164,16 @@ module search './app/search.bicep' = {
   }
 }
 
+// Create Azure OpenAI service for chat functionality
+module openAI './app/openai.bicep' = {
+  name: 'openAI'
+  params: {
+    name: !empty(openAIServiceName) ? openAIServiceName : '${abbrs.cognitiveServicesAccounts}${resourceToken}'
+    location: location
+    tags: tags
+  }
+}
+
 // Consolidated Role Assignments
 module rbac 'app/rbac.bicep' = {
   name: 'rbacAssignments'
@@ -174,6 +188,7 @@ module rbac 'app/rbac.bicep' = {
     allowUserIdentityPrincipal: storageEndpointConfig.allowUserIdentityPrincipal
     serviceBusNamespaceName: serviceBus.outputs.serviceBusNamespaceName
     searchServiceName: search.outputs.searchServiceName
+    openAIServiceName: openAI.outputs.openAIServiceName
   }
 }
 

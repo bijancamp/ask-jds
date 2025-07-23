@@ -16,6 +16,13 @@ public class AppSettings
     public string SearchIndexName { get; set; } = "job-descriptions";
     
     /// <summary>
+    /// The name of the OpenAI deployment for chat functionality
+    /// </summary>
+    public string OpenAIDeploymentName { get; set; } = "gpt-4o";
+
+    public string OpenAIApiKey { get; set; } = "";
+    
+    /// <summary>
     /// Flag indicating whether the application is running in production
     /// </summary>
     public bool IsProduction => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WEBSITE_INSTANCE_ID"));

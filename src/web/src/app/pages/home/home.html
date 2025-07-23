@@ -1,11 +1,83 @@
 <div class="home-container">
-  <mat-card>
+  <mat-card class="chat-card">
     <mat-card-header>
       <mat-card-title>Ask JDs</mat-card-title>
+      <mat-card-subtitle>Chat with your job descriptions using AI</mat-card-subtitle>
+      <div class="header-actions">
+        <button mat-icon-button (click)="clearChat()" [disabled]="messages.length === 0" title="Clear chat">
+          <mat-icon>clear_all</mat-icon>
+        </button>
+      </div>
     </mat-card-header>
+    
     <mat-card-content>
-      <p class="coming-soon">Coming soon...</p>
-      <p>A web application that enables users to ask questions about job descriptions that they upload.</p>
+      <!-- Chat Messages -->
+      <div class="chat-messages" #chatContainer>
+        <div *ngIf="messages.length === 0" class="welcome-message">
+          <mat-icon class="welcome-icon">chat</mat-icon>
+          <h3>Welcome to Ask JDs!</h3>
+          <p>Ask questions about your job descriptions. I can help you find specific roles, compare requirements, or analyze job postings.</p>
+          <div class="example-questions">
+            <h4>Try asking:</h4>
+            <ul>
+              <li>"What software engineering jobs are available?"</li>
+              <li>"Show me remote positions"</li>
+              <li>"What are the requirements for data scientist roles?"</li>
+            </ul>
+          </div>
+        </div>
+
+        <div *ngFor="let message of messages" class="message" [ngClass]="message.role">
+          <div class="message-content">
+            <div class="message-text">{{ message.content }}</div>
+            <div class="message-time">{{ message.timestamp | date:'short' }}</div>
+          </div>
+        </div>
+
+        <div *ngIf="isLoading" class="message assistant loading">
+          <div class="message-content">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span class="loading-text">Thinking...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sources -->
+      <div *ngIf="sources && sources.length > 0" class="sources-section">
+        <h4>Sources:</h4>
+        <div class="sources-list">
+          <mat-chip-set>
+            <mat-chip *ngFor="let source of sources" class="source-chip">
+              <mat-icon matChipAvatar>work</mat-icon>
+              <span class="source-title">{{ source.title }}</span>
+              <span class="source-company">at {{ source.company }}</span>
+            </mat-chip>
+          </mat-chip-set>
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="chat-input-container">
+        <mat-form-field class="chat-input" appearance="outline">
+          <mat-label>Ask a question about job descriptions...</mat-label>
+          <textarea 
+            matInput 
+            [(ngModel)]="currentMessage" 
+            (keydown)="onKeyPress($event)"
+            [disabled]="isLoading"
+            rows="2"
+            placeholder="e.g., What are the requirements for senior developer roles?">
+          </textarea>
+        </mat-form-field>
+        <button 
+          mat-fab 
+          color="primary" 
+          (click)="sendMessage()" 
+          [disabled]="!currentMessage.trim() || isLoading"
+          class="send-button">
+          <mat-icon>send</mat-icon>
+        </button>
+      </div>
     </mat-card-content>
   </mat-card>
 </div>

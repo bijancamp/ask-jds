@@ -8,6 +8,7 @@ param enableQueue bool = false
 param enableTable bool = false
 param serviceBusNamespaceName string = ''
 param searchServiceName string = ''
+param openAIServiceName string = ''
 
 // Define Role Definition IDs internally
 var storageRoleDefinitionId = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b' //Storage Blob Data Owner role
@@ -17,6 +18,7 @@ var monitoringRoleDefinitionId = '3913510d-42f4-4e42-8a64-420c390055eb' // Monit
 var serviceBusDataOwnerRoleDefinitionId = '090c5cfd-751d-490a-894a-3ce6f1109419' // Azure Service Bus Data Owner role
 var searchIndexDataContributorRoleDefinitionId = '8ebe5a00-799e-43f5-93ac-243d3dce84a7' // Search Index Data Contributor role
 var searchServiceContributorRoleDefinitionId = '7ca78c08-252a-4471-8644-bb5ff32d4ba0' // Search Service Contributor role
+var cognitiveServicesOpenAIUserRoleDefinitionId = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services OpenAI User role
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' existing = {
   name: storageAccountName
@@ -32,6 +34,10 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview
 
 resource searchService 'Microsoft.Search/searchServices@2023-11-01' existing = if (!empty(searchServiceName)) {
   name: searchServiceName
+}
+
+resource openAIService 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = if (!empty(openAIServiceName)) {
+  name: openAIServiceName
 }
 
 // Role assignment for Storage Account (Blob) - Managed Identity
@@ -183,6 +189,28 @@ resource searchServiceRoleAssignment_User 'Microsoft.Authorization/roleAssignmen
   scope: searchService
   properties: {
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', searchServiceContributorRoleDefinitionId)
+    principalId: userIdentityPrincipalId
+    principalType: 'User'
+  }
+}
+
+// Role assignment for OpenAI Service - Managed Identity
+resource openAIRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(openAIServiceName)) {
+  name: guid(openAIService.id, managedIdentityPrincipalId, cognitiveServicesOpenAIUserRoleDefinitionId)
+  scope: openAIService
+  properties: {
+    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', cognitiveServicesOpenAIUserRoleDefinitionId)
+    principalId: managedIdentityPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Role assignment for OpenAI Service - User Identity
+resource openAIRoleAssignment_User 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(openAIServiceName) && allowUserIdentityPrincipal && !empty(userIdentityPrincipalId)) {
+  name: guid(openAIService.id, userIdentityPrincipalId, cognitiveServicesOpenAIUserRoleDefinitionId)
+  scope: openAIService
+  properties: {
+    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', cognitiveServicesOpenAIUserRoleDefinitionId)
     principalId: userIdentityPrincipalId
     principalType: 'User'
   }

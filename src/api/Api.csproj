@@ -8,6 +8,7 @@
     <UserSecretsId>d350d513-6831-4dde-9f92-2beade8cfd0f</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.17" />
     <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.3.0" />
     <PackageReference Include="Azure.Identity" Version="1.12.0" />
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.17.5" />

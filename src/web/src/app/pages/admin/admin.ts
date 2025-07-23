@@ -69,7 +69,7 @@ export class AdminComponent implements OnInit {
   ngAfterViewInit() {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
-    
+
     // Handle pagination events
     if (this.paginator) {
       this.paginator.page.subscribe(event => {
@@ -77,6 +77,19 @@ export class AdminComponent implements OnInit {
         this.pageSize = event.pageSize;
         this.loadJobDescriptions();
       });
+    }
+
+    // Initial refresh to ensure data is loaded
+    setTimeout(() => this.refreshTable(), 0);
+  }
+
+  refreshTable() {
+    // Reset to first page when refreshing the entire table
+    if (this.paginator && this.paginator.pageIndex !== 0) {
+      this.paginator.firstPage();
+      this.currentPage = 1;
+    } else {
+      this.loadJobDescriptions();
     }
   }
 
@@ -87,9 +100,21 @@ export class AdminComponent implements OnInit {
         next: (response) => {
           this.dataSource.data = response.items;
           this.totalCount = response.totalCount;
+
+          // Handle pagination updates
           if (this.paginator) {
             this.paginator.length = response.totalCount;
+
+            // If current page has no items and we're not on the first page, go back one page
+            if (response.items.length === 0 && this.currentPage > 1) {
+              this.currentPage--;
+              this.paginator.pageIndex = this.currentPage - 1;
+              // Reload with the updated page index
+              this.loadJobDescriptions();
+              return;
+            }
           }
+
           this.isLoading = false;
         },
         error: (error) => {
@@ -113,13 +138,15 @@ export class AdminComponent implements OnInit {
     if (this.jobForm.valid) {
       this.isSubmitting = true;
       const submission: JobDescriptionSubmission = this.jobForm.value;
-      
+
       this.jobDescriptionService.submitJobDescription(submission)
         .subscribe({
           next: (response) => {
             this.snackBar.open('Job description submitted successfully', 'Close', { duration: 3000 });
             this.resetForm();
-            this.loadJobDescriptions();
+
+            // Refresh the table and navigate to the first page to see the newly added job description
+            this.refreshTable();
             this.isSubmitting = false;
           },
           error: (error) => {
@@ -138,11 +165,27 @@ export class AdminComponent implements OnInit {
   deleteJobDescription(id: string) {
     if (confirm('Are you sure you want to delete this job description?')) {
       this.isLoading = true;
+
+      // Store current state before deletion
+      const currentItems = this.dataSource.data.length;
+      const wasLastItemOnPage = currentItems === 1 && this.currentPage > 1;
+
       this.jobDescriptionService.deleteJobDescription(id)
         .subscribe({
           next: (response) => {
             this.snackBar.open('Job description deleted successfully', 'Close', { duration: 3000 });
-            this.loadJobDescriptions();
+
+            // If we're deleting the last item on a page (not the first page), go to previous page
+            if (wasLastItemOnPage) {
+              this.currentPage--;
+              if (this.paginator) {
+                this.paginator.pageIndex = this.currentPage - 1;
+              }
+              this.loadJobDescriptions();
+            } else {
+              // Otherwise just refresh the current page
+              this.loadJobDescriptions();
+            }
           },
           error: (error) => {
             console.error('Error deleting job description', error);

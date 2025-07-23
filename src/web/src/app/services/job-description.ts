@@ -7,7 +7,7 @@ import { JobDescription, JobDescriptionSubmission } from '../models/job-descript
   providedIn: 'root'
 })
 export class JobDescriptionService {
-  private apiUrl = 'http://localhost:3100';
+  private apiUrl = 'https://func-api-keanqvp2yvcv4.azurewebsites.net';
 
   constructor(private http: HttpClient) { }
 

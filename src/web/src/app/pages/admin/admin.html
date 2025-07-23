@@ -5,12 +5,17 @@
     <div class="table-container">
       <div class="table-header">
         <h2>Job Descriptions</h2>
-        <div class="search-container">
-          <mat-form-field appearance="outline">
-            <mat-label>Search</mat-label>
-            <input matInput (keyup)="applyFilter($event)" placeholder="Search job descriptions">
-            <mat-icon matSuffix>search</mat-icon>
-          </mat-form-field>
+        <div class="table-actions">
+          <button mat-icon-button color="primary" (click)="refreshTable()" title="Refresh" aria-label="Refresh job descriptions">
+            <mat-icon>refresh</mat-icon>
+          </button>
+          <div class="search-container">
+            <mat-form-field appearance="outline">
+              <mat-label>Search</mat-label>
+              <input matInput (keyup)="applyFilter($event)" placeholder="Search job descriptions">
+              <mat-icon matSuffix>search</mat-icon>
+            </mat-form-field>
+          </div>
         </div>
       </div>
   

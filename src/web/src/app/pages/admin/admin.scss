@@ -32,6 +32,12 @@
   margin-bottom: 1rem;
 }
 
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .search-container {
   min-width: 300px;
 }
@@ -64,9 +70,13 @@ table {
     align-items: flex-start;
   }
   
-  .search-container {
+  .table-actions {
     width: 100%;
     margin-top: 1rem;
+  }
+  
+  .search-container {
+    width: 100%;
   }
   
   .mat-column-actions {

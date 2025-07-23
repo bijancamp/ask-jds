@@ -22,8 +22,10 @@ param applicationInsightsName string = ''
 param appServicePlanName string = ''
 param logAnalyticsName string = ''
 param storageAccountName string = ''
+param serviceBusConnectionString string = ''
 param serviceBusNamespaceName string = ''
 param searchServiceName string = ''
+param searchServiceApiKey string = ''
 
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
@@ -92,9 +94,14 @@ module api './app/api.bicep' = {
     sqlAdminIdentityId: ''
     appSettings: {
       AZURE_KEY_VAULT_ENDPOINT: ''
-      ServiceBusConnectionString: serviceBus.outputs.serviceBusConnectionString
+      ServiceBusConnectionString: serviceBusConnectionString
+      ServiceBusNamespace: serviceBus.outputs.serviceBusNamespaceName
+      ServiceBusQueueName: serviceBus.outputs.queueName
       SearchServiceEndpoint: search.outputs.searchServiceEndpoint
       SearchServiceName: search.outputs.searchServiceName
+      SearchServiceApiKey: searchServiceApiKey
+      SearchIndexName: 'job-descriptions'
+      APPLICATIONINSIGHTS_CONNECTION_STRING: monitoring.outputs.connectionString
     }
     virtualNetworkSubnetId: ''
     allowedOrigins: [ webUri ]

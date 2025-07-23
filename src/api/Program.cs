@@ -26,6 +26,15 @@ class Program
                     var connectionString = Environment.GetEnvironmentVariable("ServiceBusConnectionString");
                     if (!string.IsNullOrEmpty(connectionString))
                     {
+                        // Check if the connection string specifies managed identity authentication
+                        if (connectionString.Contains("Authentication=ManagedIdentity", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Extract the namespace from the connection string
+                            var uri = connectionString.Split(';')[0].Replace("Endpoint=sb://", "");
+                            return new ServiceBusClient(uri, credential);
+                        }
+                        
+                        // Use connection string with shared access key
                         return new ServiceBusClient(connectionString);
                     }
                     
@@ -43,29 +52,44 @@ class Program
                 services.AddSingleton<SearchIndexClient>(provider =>
                 {
                     var searchServiceEndpoint = Environment.GetEnvironmentVariable("SearchServiceEndpoint");
+                    if (string.IsNullOrEmpty(searchServiceEndpoint))
+                    {
+                        throw new InvalidOperationException("SearchServiceEndpoint environment variable must be set");
+                    }
+                    
                     var searchApiKey = Environment.GetEnvironmentVariable("SearchServiceApiKey");
                     
-                    if (!string.IsNullOrEmpty(searchServiceEndpoint) && !string.IsNullOrEmpty(searchApiKey))
-                    {
-                        // Use API key authentication if available
-                        return new SearchIndexClient(new Uri(searchServiceEndpoint), new AzureKeyCredential(searchApiKey));
-                    }
+                    // In production, prefer managed identity authentication
+                    var isProduction = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WEBSITE_INSTANCE_ID"));
                     
-                    if (!string.IsNullOrEmpty(searchServiceEndpoint))
+                    if (isProduction || string.IsNullOrEmpty(searchApiKey))
                     {
-                        // Fallback to managed identity
+                        // Use managed identity in production or when no API key is available
                         return new SearchIndexClient(new Uri(searchServiceEndpoint), credential);
                     }
-                    
-                    throw new InvalidOperationException("SearchServiceEndpoint environment variable must be set");
+                    else
+                    {
+                        // Use API key authentication for local development
+                        return new SearchIndexClient(new Uri(searchServiceEndpoint), new AzureKeyCredential(searchApiKey));
+                    }
                 });
 
                 // Add SearchClient for querying the index
                 services.AddSingleton<SearchClient>(provider =>
                 {
                     var indexClient = provider.GetRequiredService<SearchIndexClient>();
-                    var indexName = Environment.GetEnvironmentVariable("SearchIndexName") ?? "job-descriptions";
-                    return indexClient.GetSearchClient(indexName);
+                    var appSettings = provider.GetRequiredService<AppSettings>();
+                    return indexClient.GetSearchClient(appSettings.SearchIndexName);
+                });
+                
+                // Add configuration values as singleton services for easy access
+                services.AddSingleton(provider => 
+                {
+                    return new AppSettings
+                    {
+                        ServiceBusQueueName = Environment.GetEnvironmentVariable("ServiceBusQueueName") ?? "job-descriptions",
+                        SearchIndexName = Environment.GetEnvironmentVariable("SearchIndexName") ?? "job-descriptions"
+                    };
                 });
             })
             // .ConfigureAppConfiguration(config => 
@@ -85,7 +109,8 @@ class Program
     {
         var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
         var indexClient = services.GetRequiredService<SearchIndexClient>();
-        var indexName = Environment.GetEnvironmentVariable("SearchIndexName") ?? "job-descriptions";
+        var appSettings = services.GetRequiredService<AppSettings>();
+        var indexName = appSettings.SearchIndexName;
 
         try
         {

@@ -31,5 +31,5 @@ module serviceBusNamespace 'br/public:avm/res/service-bus/namespace:0.9.0' = {
 
 output serviceBusNamespaceName string = serviceBusNamespace.outputs.name
 output serviceBusNamespaceId string = serviceBusNamespace.outputs.resourceId
-output serviceBusConnectionString string = 'Endpoint=sb://${serviceBusNamespace.outputs.name}.servicebus.windows.net/;Authentication=Managed Identity'
+output serviceBusConnectionString string = 'Endpoint=sb://${serviceBusNamespace.outputs.name}.servicebus.windows.net/;Authentication=ManagedIdentity'
 output queueName string = queueName

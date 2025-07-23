@@ -17,12 +17,14 @@ public class Functions
     private readonly ILogger logger;
     private readonly ServiceBusClient serviceBusClient;
     private readonly SearchClient searchClient;
+    private readonly AppSettings appSettings;
 
-    public Functions(ILoggerFactory _loggerFactory, ServiceBusClient serviceBusClient, SearchClient searchClient)
+    public Functions(ILoggerFactory _loggerFactory, ServiceBusClient serviceBusClient, SearchClient searchClient, AppSettings appSettings)
     {
         logger = _loggerFactory.CreateLogger<Functions>();
         this.serviceBusClient = serviceBusClient;
         this.searchClient = searchClient;
+        this.appSettings = appSettings;
     }
 
     [Function("Hello")]
@@ -98,7 +100,7 @@ public class Functions
             var messageJson = JsonSerializer.Serialize(message);
 
             // Send message to Service Bus queue
-            var sender = serviceBusClient.CreateSender("job-descriptions");
+            var sender = serviceBusClient.CreateSender(appSettings.ServiceBusQueueName);
             var serviceBusMessage = new ServiceBusMessage(messageJson)
             {
                 ContentType = "application/json",
@@ -124,7 +126,7 @@ public class Functions
     
     [Function("ProcessJobDescription")]
     public async Task ProcessJobDescription(
-        [ServiceBusTrigger("job-descriptions", Connection = "ServiceBusConnectionString")] 
+        [ServiceBusTrigger("%ServiceBusQueueName%", Connection = "ServiceBusConnectionString")] 
         string messageJson)
     {
         var correlationId = Guid.NewGuid().ToString();

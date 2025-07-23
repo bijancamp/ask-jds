@@ -44,9 +44,9 @@ public class JobDescriptionDocument
     public DateTimeOffset? PostingDate { get; set; }
 
     /// <summary>
-    /// The original ID from Workday system (retrievable, optional)
+    /// The original ID from Workday system (retrievable, filterable, optional)
     /// </summary>
-    [SimpleField]
+    [SimpleField(IsFilterable = true)]
     public string? WorkdayId { get; set; }
 
     /// <summary>

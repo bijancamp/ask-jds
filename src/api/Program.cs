@@ -102,28 +102,55 @@ class Program
                 }
             }
 
+            // Create a new index definition
+            var fieldBuilder = new FieldBuilder();
+            var searchFields = fieldBuilder.Build(typeof(JobDescriptionDocument));
+
+            var definition = new SearchIndex(indexName, searchFields);
+            
+            // Add suggesters for autocomplete functionality
+            definition.Suggesters.Add(new SearchSuggester(
+                "sg-job-descriptions",
+                new[] { "Title", "Company", "Location" }
+            ));
+
             if (!indexExists)
             {
                 logger.LogInformation("Search index '{IndexName}' not found. Creating index...", indexName);
-                
-                // Create a new index
-                var fieldBuilder = new FieldBuilder();
-                var searchFields = fieldBuilder.Build(typeof(JobDescriptionDocument));
-
-                var definition = new SearchIndex(indexName, searchFields);
-                
-                // Add suggesters for autocomplete functionality
-                definition.Suggesters.Add(new SearchSuggester(
-                    "sg-job-descriptions",
-                    new[] { "Title", "Company", "Location" }
-                ));
-
                 await indexClient.CreateOrUpdateIndexAsync(definition);
                 logger.LogInformation("Search index '{IndexName}' created successfully", indexName);
             }
             else
             {
-                logger.LogInformation("Search index '{IndexName}' already exists", indexName);
+                logger.LogInformation("Search index '{IndexName}' already exists. Updating index definition...", indexName);
+                
+                // Update the existing index with the new field definitions
+                try {
+                    await indexClient.CreateOrUpdateIndexAsync(definition);
+                    logger.LogInformation("Search index '{IndexName}' updated successfully", indexName);
+                }
+                catch (RequestFailedException ex) when (ex.Status == 400)
+                {
+                    // If we can't update the index (e.g., because we're trying to make a non-filterable field filterable),
+                    // we need to recreate it
+                    logger.LogWarning("Cannot update index '{IndexName}'. Attempting to delete and recreate...", indexName);
+                    
+                    try
+                    {
+                        // Delete the existing index
+                        await indexClient.DeleteIndexAsync(indexName);
+                        logger.LogInformation("Deleted existing index '{IndexName}'", indexName);
+                        
+                        // Create a new index with the updated definition
+                        await indexClient.CreateIndexAsync(definition);
+                        logger.LogInformation("Recreated index '{IndexName}' with updated schema", indexName);
+                    }
+                    catch (Exception deleteEx)
+                    {
+                        logger.LogError(deleteEx, "Failed to delete and recreate index '{IndexName}'", indexName);
+                        throw;
+                    }
+                }
             }
         }
         catch (Exception ex)

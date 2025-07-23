@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.ComponentModel.DataAnnotations;
 using Azure.Messaging.ServiceBus;
 using Api.Models;
+using Microsoft.Azure.Functions.Worker.Extensions.ServiceBus;
 
 namespace Api;
 public class Functions
@@ -113,6 +114,72 @@ public class Functions
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
             await errorResponse.WriteAsJsonAsync(new { error = "Internal server error" });
             return errorResponse;
+        }
+    }
+    
+    [Function("ProcessJobDescription")]
+    public async Task ProcessJobDescription(
+        [ServiceBusTrigger("job-descriptions", Connection = "ServiceBusConnectionString")] 
+        string messageJson)
+    {
+        var correlationId = Guid.NewGuid().ToString();
+        logger.LogInformation("[{CorrelationId}] Processing job description message from queue", correlationId);
+        
+        try
+        {
+            // Deserialize the message
+            JobDescriptionMessage? message;
+            try
+            {
+                message = JsonSerializer.Deserialize<JobDescriptionMessage>(messageJson, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                if (message == null)
+                {
+                    logger.LogError("[{CorrelationId}] Failed to deserialize message: message is null", correlationId);
+                    return; // Message will be sent to dead-letter queue after retry policy is exhausted
+                }
+            }
+            catch (JsonException ex)
+            {
+                logger.LogError(ex, "[{CorrelationId}] Failed to deserialize message: invalid JSON format", correlationId);
+                throw; // Rethrow to trigger retry policy
+            }
+            
+            logger.LogInformation("[{CorrelationId}] Processing job description with ID: {MessageId}", correlationId, message.Id);
+            
+            // Validate the message payload
+            if (string.IsNullOrWhiteSpace(message.Payload.Title))
+            {
+                logger.LogError("[{CorrelationId}] Invalid message payload: Title is required", correlationId);
+                throw new InvalidOperationException("Title is required");
+            }
+            
+            if (string.IsNullOrWhiteSpace(message.Payload.Company))
+            {
+                logger.LogError("[{CorrelationId}] Invalid message payload: Company is required", correlationId);
+                throw new InvalidOperationException("Company is required");
+            }
+            
+            if (string.IsNullOrWhiteSpace(message.Payload.Description))
+            {
+                logger.LogError("[{CorrelationId}] Invalid message payload: Description is required", correlationId);
+                throw new InvalidOperationException("Description is required");
+            }
+            
+            // Transform message to search document
+            var document = JobDescriptionDocument.FromMessage(message);
+            
+            // TODO: In task #5, implement Azure AI Search indexing functionality
+            // This will be implemented in the next task
+            logger.LogInformation("[{CorrelationId}] Job description processed successfully with ID: {MessageId}", correlationId, message.Id);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[{CorrelationId}] Error processing job description message", correlationId);
+            throw; // Rethrow to trigger Service Bus retry policy
         }
     }
 }

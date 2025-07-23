@@ -13,6 +13,7 @@ module serviceBusNamespace 'br/public:avm/res/service-bus/namespace:0.9.0' = {
     skuObject: {
       name: 'Basic'
     }
+    disableLocalAuth: false
     queues: [
       {
         name: queueName

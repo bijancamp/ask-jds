@@ -22,6 +22,8 @@ param applicationInsightsName string = ''
 param appServicePlanName string = ''
 param logAnalyticsName string = ''
 param storageAccountName string = ''
+param serviceBusNamespaceName string = ''
+param searchServiceName string = ''
 
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
@@ -90,6 +92,9 @@ module api './app/api.bicep' = {
     sqlAdminIdentityId: ''
     appSettings: {
       AZURE_KEY_VAULT_ENDPOINT: ''
+      ServiceBusConnectionString: serviceBus.outputs.serviceBusConnectionString
+      SearchServiceEndpoint: search.outputs.searchServiceEndpoint
+      SearchServiceName: search.outputs.searchServiceName
     }
     virtualNetworkSubnetId: ''
     allowedOrigins: [ webUri ]
@@ -126,6 +131,28 @@ var storageEndpointConfig = {
   allowUserIdentityPrincipal: true   // Allow interactive user identity to access for testing and debugging
 }
 
+// Create Service Bus namespace and queue for job description processing
+module serviceBus './app/servicebus.bicep' = {
+  name: 'serviceBus'
+  params: {
+    name: !empty(serviceBusNamespaceName) ? serviceBusNamespaceName : '${abbrs.serviceBusNamespaces}${resourceToken}'
+    location: location
+    tags: tags
+    queueName: 'job-descriptions'
+  }
+}
+
+// Create Azure AI Search service for job description indexing
+module search './app/search.bicep' = {
+  name: 'search'
+  params: {
+    name: !empty(searchServiceName) ? searchServiceName : '${abbrs.searchSearchServices}${resourceToken}'
+    location: location
+    tags: tags
+    sku: 'free'
+  }
+}
+
 // Consolidated Role Assignments
 module rbac 'app/rbac.bicep' = {
   name: 'rbacAssignments'
@@ -138,6 +165,8 @@ module rbac 'app/rbac.bicep' = {
     enableQueue: storageEndpointConfig.enableQueue
     enableTable: storageEndpointConfig.enableTable
     allowUserIdentityPrincipal: storageEndpointConfig.allowUserIdentityPrincipal
+    serviceBusNamespaceName: serviceBus.outputs.serviceBusNamespaceName
+    searchServiceName: search.outputs.searchServiceName
   }
 }
 

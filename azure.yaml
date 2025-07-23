@@ -7,6 +7,10 @@ workflows:
       - azd: provision
       - azd: deploy --all
 services:
+  api:
+    project: ./src/api
+    language: dotnet
+    host: function
   web:
     project: ./src/web
     dist: dist/web/browser

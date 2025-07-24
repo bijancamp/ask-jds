@@ -1,0 +1,25 @@
+{
+    "name": ".NET 8 (Bookworm) with Node.js v22",
+    "image": "mcr.microsoft.com/devcontainers/dotnet:8.0-bookworm",
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "22",
+            "nodeGypDependencies": false
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "GitHub.vscode-github-actions",
+                "ms-azuretools.azure-dev",
+                "ms-azuretools.vscode-azurefunctions",
+                "ms-azuretools.vscode-bicep",
+                "ms-dotnettools.csharp",
+                "ms-dotnettools.vscode-dotnet-runtime",
+                "ms-vscode.vscode-node-azure-pack"
+            ]
+        }
+    },
+    "postCreateCommand": "sh .devcontainer/post-create.sh",
+    "remoteUser": "vscode"
+}
